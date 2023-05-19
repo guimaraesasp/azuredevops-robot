@@ -1,39 +1,29 @@
 trigger:
-- master
+  branches:
+    include:
+      - main
 
 pool:
-  vmImage: 'windows-2019'
-
-strategy:
-  matrix:
-    Python37:
-      python.version: '3.7'
-  maxParallel: 1
-
-variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  vmImage: 'ubuntu-latest'
 
 steps:
-
 - task: UsePythonVersion@0
-  inputs: 
-    versionSpec: '$(python.version)'
-    architecture: 'x64'
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
 
-- script: pip install robotframework robotframework-pabot robotframework-seleniumlibrary webdrivermanager
+- script: python -m pip install --upgrade pip
+  displayName: 'Upgrade pip'
+
+- script: pip install -r requirements.txt
   displayName: 'Install dependencies'
 
-- powershell: |
-   Write-Host "Robot Framework tests"
-   robot -x 'outputxunit.xml' '$(Build.SourcesDirectory)\TestCases.robot'
-  failOnStderr: true
-  displayName: 'Run Robot Framework Tests'
-  continueOnError: true
+- script: robot --outputdir results tests/
+  displayName: 'Run Robot Framework tests'
 
 - task: PublishTestResults@2
-  displayName: 'Publish Test Results'
-  continueOnError: true
   inputs:
-    testResultsFiles: outputxunit.xml
+    testResultsFormat: 'NUnit'
+    testResultsFiles: '**/output.xml'
+    searchFolder: '$(System.DefaultWorkingDirectory)/results'
+  displayName: 'Publish test results'
